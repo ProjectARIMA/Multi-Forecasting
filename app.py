@@ -95,7 +95,7 @@ plt.xticks(rotation=45)
 plt.show()
 
 # Streamlit web app
-st.title('Sales Forecasting Web App')
+st.title('Multi Variate Forecasting Web app')
 st.write("Data Overview:")
 st.write(data.head())
 
