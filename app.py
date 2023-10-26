@@ -43,8 +43,8 @@ adf_statistic = result[0]
 p_value = result[1]
 
 # Decompose the time series
-#decomposition = seasonal_decompose(data['Weekly_Sales'], model='additive, period=1)
-decomposition = seasonal_decompose(data['Weekly_Sales'])
+#decomposition = seasonal_decompose(data['Weekly_Sales'], model='additive', period=1)
+decomposition = seasonal_decompose(data['Weekly_Sales'], period = 7)
 trend = decomposition.trend
 seasonal = decomposition.seasonal
 residual = decomposition.resid
