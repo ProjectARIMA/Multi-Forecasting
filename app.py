@@ -88,14 +88,18 @@ if uploaded_file is not None:
     # Forecast for the next 2 weeks (14 days)
     forecast = results.forecast(y=data2.values, steps=14)
     
-    # Create a date range for the next 2 weeks starting from '2012-10-19'
+    # Create a date range for the next 2 weeks starting from '2012-10-26'
     next_two_weeks_dates = pd.date_range(start='2012-10-26', periods=14)
     
     # Create a DataFrame for the forecast
+    # The forecasted values are organized into a DataFrame named forecast_df. The columns of this DataFrame correspond to the columns in the data2 DataFrame, and the index is set to the date range created in the previous step.
     forecast_df = pd.DataFrame(forecast, columns=data2.columns, index=next_two_weeks_dates)
     
     # Calculate the date range for the last 5 weeks
+    # The start date for the last 5 weeks of historical data is calculated by taking the maximum date from the 'Date' column in the original 'data' DataFrame and subtracting 5 weeks.
     last_five_weeks_start = data['Date'].max() - pd.DateOffset(weeks=5)
+
+    #The end date for the last 5 weeks of historical data is set to the maximum date in the 'Date' column of the original 'data' DataFrame.
     last_five_weeks_end = data['Date'].max()
     
     # Filter the historical data for the last 5 weeks
@@ -133,9 +137,13 @@ if uploaded_file is not None:
     st.line_chart(residual)
     
     st.write("Last 5 Weeks of Historical Data:")
+
+    # Displays line chart with 'Date' column as index and last 35 (5 weeks) data points.
     st.line_chart(data.set_index('Date').tail(35))
     
     st.write("Forecast for the Next 2 Weeks:")
+
+    # Display line chart for forcasted values using 'forcast_df' DataFrame object.
     st.line_chart(forecast_df)
     
     # You can add more content or interactivity as needed
