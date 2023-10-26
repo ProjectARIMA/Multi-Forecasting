@@ -14,27 +14,37 @@ from statsmodels.tsa.stattools import adfuller
 data = pd.read_csv('train.csv')
 
 # Select the first 1000 rows of the DataFrame
+# Only the first 1000 rows are used for data analysis in this case because there are 4+ lakh rows in the dataset and the program was crashing by handling such a large amount of dataset.
 data = data.head(1000)
 
-# Convert the 'Date' column to datetime
+# Convert the 'Date' column to datetime to perform time-based analysis.
 data['Date'] = pd.to_datetime(data['Date'])
 
 # Handle missing values
+# Replaces missing values in 'Weekly_Sales' column with the mean of 'Weekly_Sales' column values.
+# Note: NaN represents missing value.
 data['Weekly_Sales'].fillna(data['Weekly_Sales'].mean(), inplace=True)
 
 # Check for infinite values and handle them if needed
+# Replaces infinite values with NaN values and then replace those NaN with the mean of 'Weekly_Sales' column values.
 if np.isinf(data['Weekly_Sales']).any():
     data['Weekly_Sales'] = data['Weekly_Sales'].replace([np.inf, -np.inf], np.nan)
     data['Weekly_Sales'].fillna(data['Weekly_Sales'].mean(), inplace=True)
 
 # Analyze the time series data
 # Calculate ADF test p-value for 'Weekly_Sales'
+# Checks stationarity of 'Weekly_Sales' column data and resultant array is associated with 'result' variable.
 result = adfuller(data['Weekly_Sales'])
+
+# 'result[0]' yeilds statistic value.
 adf_statistic = result[0]
+
+# 'result[1]' yeilds p-value.
 p_value = result[1]
 
 # Decompose the time series
-decomposition = seasonal_decompose(data['Weekly_Sales'], model='additive', period=1)
+#decomposition = seasonal_decompose(data['Weekly_Sales'], model='additive, period=1)
+decomposition = seasonal_decompose(data['Weekly_Sales'])
 trend = decomposition.trend
 seasonal = decomposition.seasonal
 residual = decomposition.resid
