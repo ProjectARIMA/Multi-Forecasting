@@ -1,152 +1,122 @@
 # Import necessary libraries
-import pandas as pd
-import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
-from statsmodels.tsa.seasonal import seasonal_decompose
-from statsmodels.tsa.api import VAR
-from statsmodels.tsa.base.datetools import dates_from_str
-from sklearn.preprocessing import LabelEncoder
-from statsmodels.tsa.stattools import adfuller
+import pandas as pd  # Import the Pandas library for data manipulation
+import streamlit as st  # Import Streamlit for creating a web application
+import numpy as np  # Import NumPy for numerical operations
+import matplotlib.pyplot as plt  # Import Matplotlib for creating plots
+from statsmodels.tsa.seasonal import seasonal_decompose  # Import seasonal decomposition function from statsmodels
+from statsmodels.tsa.api import VAR  # Import Vector Autoregression (VAR) model from statsmodels
+from statsmodels.tsa.base.datetools import dates_from_str  # Import date handling functions from statsmodels
+from sklearn.preprocessing import LabelEncoder  # Import LabelEncoder for encoding categorical data
+from statsmodels.tsa.stattools import adfuller  # Import Augmented Dickey-Fuller test for time series stationarity check
 
-# Define the Streamlit app
-st.title("Multivariate Anomaly Detection and Time Series Forecasting Web Application") #It sets the website title to 'Anomaly Detection and Time Series Forecasting Web Application'
+# Load and preprocess the dataset
+# Load the dataset (replace 'your_dataset.csv' with the actual file path)
+data = pd.read_csv('train.csv')  # Load the dataset from a CSV file
 
-st.set_option('deprecation.showPyplotGlobalUse', False) #It hides all the warnings in python output
+# Select the first 1000 rows of the DataFrame
+data = data.head(1000)  # Take the first 1000 rows of the dataset
 
-# Upload dataset
-uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"]) # A widget to let users input his/her CSV files.
-if uploaded_file is not None:
-    # Load and preprocess the dataset
-    # Load the dataset (replace 'your_dataset.csv' with the actual file path)
-    data = pd.read_csv(uploaded_file)
-    
-    # Select the first 1000 rows of the DataFrame
-    # Only the first 1000 rows are used for data analysis in this case because there are 4+ lakh rows in the dataset and the program was crashing by handling such a large amount of dataset.
-    data = data.head(1000)
-    
-    # Convert the 'Date' column to datetime to perform time-based analysis.
-    data['Date'] = pd.to_datetime(data['Date'])
-    
-    # Handle missing values
-    # Replaces missing values in 'Weekly_Sales' column with the mean of 'Weekly_Sales' column values.
-    # Note: NaN represents missing value.
-    data['Weekly_Sales'].fillna(data['Weekly_Sales'].mean(), inplace=True)
-    
-    # Check for infinite values and handle them if needed
-    # Replaces infinite values with NaN values and then replace those NaN with the mean of 'Weekly_Sales' column values.
-    if np.isinf(data['Weekly_Sales']).any():
-        data['Weekly_Sales'] = data['Weekly_Sales'].replace([np.inf, -np.inf], np.nan)
-        data['Weekly_Sales'].fillna(data['Weekly_Sales'].mean(), inplace=True)
-    
-    # Analyze the time series data
-    # Calculate ADF test p-value for 'Weekly_Sales'
-    # Checks stationarity of 'Weekly_Sales' column data and resultant array is associated with 'result' variable.
-    result = adfuller(data['Weekly_Sales'])
-    
-    # 'result[0]' yeilds statistic value.
-    adf_statistic = result[0]
-    
-    # 'result[1]' yeilds p-value.
-    p_value = result[1]
-    
-    # Decompose the time series
-    #decomposition = seasonal_decompose(data['Weekly_Sales'], model='additive', period=1)
-    decomposition = seasonal_decompose(data['Weekly_Sales'], period = 7)
-    trend = decomposition.trend
-    seasonal = decomposition.seasonal
-    residual = decomposition.resid
-    
-    # Preprocess the data for the VAR model
-    # Creates new DataFrame object and stores rows of data excluding rows containing NaN(Not-a-Number) values.
-    data_preprocessed = data.dropna()
-    
-    # Select relevant columns (features for forecasting)
-    features = ["Date", 'Weekly_Sales', 'IsHoliday']
-    
-    # Keep only the selected features
-    data2 = data_preprocessed[features]
-    
-    # Convert the 'Date' column to datetime objects
-    data2['Date'] = pd.to_datetime(data2['Date'])
-    
-    # Set 'Date' as the index
-    data2.set_index('Date', inplace=True)
-    
-    # Encode the 'IsHoliday' column
-    # LabelEncoder object is used to convert True/False to 1/0 values in this case.
-    label_encoder = LabelEncoder()
-    
-    # Maps True to 1 and False to 0 in data2 object's 'isHoliday' column.
-    data2['IsHoliday'] = label_encoder.fit_transform(data2['IsHoliday'])
-    
-    # Build and run the VAR model
-    # Create and fit the VAR model
-    model = VAR(data2)
-    results = model.fit()
-    
-    # Forecast for the next 2 weeks (14 days)
-    forecast = results.forecast(y=data2.values, steps=14)
-    
-    # Create a date range for the next 2 weeks starting from '2012-10-26'
-    next_two_weeks_dates = pd.date_range(start='2012-10-26', periods=14)
-    
-    # Create a DataFrame for the forecast
-    # The forecasted values are organized into a DataFrame named forecast_df. The columns of this DataFrame correspond to the columns in the data2 DataFrame, and the index is set to the date range created in the previous step.
-    forecast_df = pd.DataFrame(forecast, columns=data2.columns, index=next_two_weeks_dates)
-    
-    # Calculate the date range for the last 5 weeks
-    # The start date for the last 5 weeks of historical data is calculated by taking the maximum date from the 'Date' column in the original 'data' DataFrame and subtracting 5 weeks.
-    last_five_weeks_start = data['Date'].max() - pd.DateOffset(weeks=5)
+# Convert the 'Date' column to datetime
+data['Date'] = pd.to_datetime(data['Date'])  # Convert the 'Date' column to datetime objects
 
-    #The end date for the last 5 weeks of historical data is set to the maximum date in the 'Date' column of the original 'data' DataFrame.
-    last_five_weeks_end = data['Date'].max()
-    
-    # Filter the historical data for the last 5 weeks
-    historical_data = data_preprocessed[(data_preprocessed['Date'] >= last_five_weeks_start) & (data_preprocessed['Date'] <= last_five_weeks_end)]
-    
-    # Plot the 'Weekly_Sales' column for the last 5 weeks and forecast for the next 2 weeks
-    plt.figure(figsize=(12, 6))
-    plt.plot(historical_data['Date'], historical_data['Weekly_Sales'], label='Historical Sales (Last 5 Weeks)', marker='o')
-    plt.plot(forecast_df.index, forecast_df['Weekly_Sales'], label='Forecasted Sales (Next 2 Weeks)', linestyle='--', marker='o')
-    plt.xlabel('Date')
-    plt.ylabel('Sales')
-    plt.title('Sales Forecast for the Last 5 Weeks and Next 2 Weeks')
-    plt.legend()
-    plt.grid(True)
-    
-    # Rotate x-axis labels for better readability
-    plt.xticks(rotation=45)
-    
-    plt.show()
-    
-    # Streamlit web app
-    st.title('Multi Variate Forecasting Web app')
-    st.write("Data Overview:")
-    st.write(data.head())
-    
-    st.write("ADF Statistic:", adf_statistic)
-    st.write("p-value:", p_value)
-    
-    st.write("Decomposed Components:")
-    st.write("Trend:")
-    st.line_chart(trend)
-    st.write("Seasonal:")
-    st.line_chart(seasonal)
-    st.write("Residual:")
-    st.line_chart(residual)
-    
-    st.write("Last 5 Weeks of Historical Data:")
+# Handle missing values
+data['Weekly_Sales'].fillna(data['Weekly_Sales'].mean(), inplace=True)  # Fill missing 'Weekly_Sales' values with the mean
 
-    # Displays line chart with 'Date' column as index and last 35 (5 weeks) data points.
-    st.line_chart(data.set_index('Date').tail(35))
-    
-    st.write("Forecast for the Next 2 Weeks:")
+# Check for infinite values and handle them if needed
+if np.isinf(data['Weekly_Sales']).any():  # Check if there are infinite values in 'Weekly_Sales'
+    data['Weekly_Sales'] = data['Weekly_Sales'].replace([np.inf, -np.inf], np.nan)  # Replace infinite values with NaN
+    data['Weekly_Sales'].fillna(data['Weekly_Sales'].mean(), inplace=True)  # Fill NaN values with the mean
 
-    # Display line chart for forcasted values using 'forcast_df' DataFrame object.
-    st.line_chart(forecast_df)
-    
-    # You can add more content or interactivity as needed
-    
-    # To run the app, use the following command in your terminal:
-    # streamlit run sales_forecast_app.py
+# Analyze the time series data
+# Calculate ADF test p-value for 'Weekly_Sales'
+result = adfuller(data['Weekly_Sales'])  # Perform the Augmented Dickey-Fuller test
+adf_statistic = result[0]  # Extract the ADF statistic
+p_value = result[1]  # Extract the p-value
+
+# Decompose the time series
+decomposition = seasonal_decompose(data['Weekly_Sales'], model='additive', period=1)  # Decompose the time series into trend, seasonal, and residual components
+trend = decomposition.trend  # Extract the trend component
+seasonal = decomposition.seasonal  # Extract the seasonal component
+residual = decomposition.resid  # Extract the residual component
+
+# Preprocess the data for the VAR model
+data_preprocessed = data.dropna()  # Remove rows with missing values
+
+# Select relevant columns (features for forecasting)
+features = ["Date", 'Weekly_Sales', 'IsHoliday']  # Define the columns to use as features
+
+# Keep only the selected features
+data2 = data_preprocessed[features]  # Create a new DataFrame with the selected features
+
+# Convert the 'Date' column to datetime objects
+data2['Date'] = pd.to_datetime(data2['Date'])  # Convert the 'Date' column to datetime objects
+
+# Set 'Date' as the index
+data2.set_index('Date', inplace=True)  # Set the 'Date' column as the index of the DataFrame
+
+# Encode the 'IsHoliday' column
+label_encoder = LabelEncoder()  # Initialize a LabelEncoder
+data2['IsHoliday'] = label_encoder.fit_transform(data2['IsHoliday'])  # Encode the 'IsHoliday' column as numeric values
+
+# Build and run the VAR model
+# Create and fit the VAR model
+model = VAR(data2)  # Create a Vector Autoregression (VAR) model
+results = model.fit()  # Fit the model to the data
+
+# Forecast for the next 2 weeks (14 days)
+forecast = results.forecast(y=data2.values, steps=14)  # Forecast the next 14 days
+
+# Create a date range for the next 2 weeks starting from '2012-10-19'
+next_two_weeks_dates = pd.date_range(start='2012-10-26', periods=14)  # Create a date range for the next 14 days
+
+# Create a DataFrame for the forecast
+forecast_df = pd.DataFrame(forecast, columns=data2.columns, index=next_two_weeks_dates)  # Create a DataFrame for the forecast
+
+# Calculate the date range for the last 5 weeks
+last_five_weeks_start = data2['Date'].max() - pd.DateOffset(weeks=5)  # Calculate the start date of the last 5 weeks
+last_five_weeks_end = data2['Date'].max()  # Calculate the end date of the last 5 weeks
+
+# Filter the historical data for the last 5 weeks
+historical_data = data_preprocessed[(data_preprocessed['Date'] >= last_five_weeks_start) & (data_preprocessed['Date'] <= last_five_weeks_end)]  # Filter the data for the last 5 weeks
+
+# Plot the 'Weekly_Sales' column for the last 5 weeks and forecast for the next 2 weeks
+plt.figure(figsize=(12, 6))  # Create a plot with a specified size
+plt.plot(historical_data['Date'], historical_data['Weekly_Sales'], label='Historical Sales (Last 5 Weeks)', marker='o')  # Plot historical sales with markers
+plt.plot(forecast_df.index, forecast_df['Weekly_Sales'], label='Forecasted Sales (Next 2 Weeks)', linestyle='--', marker='o')  # Plot forecasted sales with markers and dashed line
+plt.xlabel('Date')  # Set the x-axis label
+plt.ylabel('Sales')  # Set the y-axis label
+plt.title('Sales Forecast for the Last 5 Weeks and Next 2 Weeks')  # Set the plot title
+plt.legend()  # Add a legend to the plot
+plt.grid(True)  # Display gridlines on the plot
+
+# Rotate x-axis labels for better readability
+plt.xticks(rotation=45)  # Rotate the x-axis labels for better visibility
+
+plt.show()  # Display the plot
+
+# Streamlit web app
+st.title('Multi-Variate Sales Forecasting Web App')  # Set the title of the Streamlit web app
+st.write("Data Overview:")  # Display a section title
+st.write(data.head())  # Display the first few rows of the dataset
+
+st.write("ADF Statistic:", adf_statistic)  # Display the ADF statistic
+st.write("p-value:", p_value)  # Display the ADF test p-value
+
+st.write("Decomposed Components:")  # Display a section title
+st.write("Trend:")  # Display a subsection title
+st.line_chart(trend)  # Display the trend component as a line chart
+st.write("Seasonal:")  # Display a subsection title
+st.line_chart(seasonal)  # Display the seasonal component as a line chart
+st.write("Residual:")  # Display a subsection title
+st.line_chart(residual)  # Display the residual component as a line chart
+
+st.write("Last 5 Weeks of Historical Data:")  # Display a section title
+st.line_chart(data.set_index('Date').tail(5))  # Display the last 5 rows of historical data as a line chart
+
+st.write("Forecast for the Next 2 Weeks:")  # Display a section title
+st.line_chart(forecast_df)  # Display the forecast for the next 2 weeks as a line chart
+
+# You can add more content or interactivity as needed
+
+# To run the app, use the following command in your terminal:
+# streamlit run sales_forecast_app.py
