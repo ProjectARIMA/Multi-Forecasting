@@ -7,8 +7,6 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.api import VAR
 from statsmodels.tsa.base.datetools import dates_from_str
 from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import IsolationForest
-
 
 # Load the dataset (replace 'your_dataset.csv' with the actual file path)
 data = pd.read_csv('train.csv')
@@ -94,51 +92,56 @@ st.subheader("Seasonal")
 st.line_chart(seasonal)
 st.subheader("Residual")
 st.line_chart(residual)
+#anomalies 
+# Calculate z-score for 'Weekly_Sales'
+data2['Weekly_Sales_Zscore'] = (data2['Weekly_Sales'] - data2['Weekly_Sales'].mean()) / data2['Weekly_Sales'].std()
+
+# Set a threshold for anomaly detection (for example, z-score greater than 3 or less than -3)
+threshold =3
+# Identify anomalies based on the threshold
+anomalies = data2[(data2['Weekly_Sales_Zscore'] > threshold) | (data2['Weekly_Sales_Zscore'] < -threshold)]
+
+# Create Matplotlib figure and plot
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.plot(data2.index, data2['Weekly_Sales'], label='Weekly Sales')
+ax.scatter(anomalies.index, anomalies['Weekly_Sales'], color='red', label='Anomalies')
+ax.set_xlabel('Date')
+ax.set_ylabel('Sales')
+ax.set_title('Anomaly Detection in Weekly Sales')
+ax.legend()
+ax.grid(True)
+ax.tick_params(axis='x', rotation=45)
+
+# Display Matplotlib figure using Streamlit
+st.write("Detected Anomalies:")
+st.pyplot(fig)
+#remove anomalies
+# Remove anomalies from the original dataset
+cleaned_data = data2[~data2.index.isin(anomalies.index)]
+
+# Display the cleaned data
+st.write("Cleaned Data (Anomalies Removed):")
+st.write(cleaned_data.head())
 
 # Plot historical and forecasted sales
-st.subheader("Sales Forecast for the Last 5 Weeks and Next 2 Weeks")
+#st.subheader("Sales Forecast for the Last 5 Weeks and Next 2 Weeks (origranl data)")
+#fig, ax = plt.subplots(figsize=(12, 6))
+#ax.plot(historical_data['Date'], historical_data['Weekly_Sales'], label='Historical Sales (Last 5 Weeks)', marker='o')
+#ax.plot(forecast_df.index, forecast_df['Weekly_Sales'], label='Forecasted Sales (Next 2 Weeks)', linestyle='--', marker='o')
+#ax.set_xlabel('Date')
+#ax.set_ylabel('Sales')
+#ax.set_title('Sales Forecast for the Last 5 Weeks and Next 2 Weeks')
+#ax.legend()
+#ax.grid(True)
+#st.pyplot(fig)
+#plot on clean data
+st.subheader("Sales Forecast for the Last 5 Weeks and Next 2 Weeks (origranl data)")
 fig, ax = plt.subplots(figsize=(12, 6))
 ax.plot(historical_data['Date'], historical_data['Weekly_Sales'], label='Historical Sales (Last 5 Weeks)', marker='o')
 ax.plot(forecast_df.index, forecast_df['Weekly_Sales'], label='Forecasted Sales (Next 2 Weeks)', linestyle='--', marker='o')
 ax.set_xlabel('Date')
 ax.set_ylabel('Sales')
-ax.set_title('Sales Forecast for the Last 5 Weeks and Next 2 Weeks')
+ax.set_title('Sales Forecast for the Last 5 Weeks and Next 2 Weeks(clean data without anomalies)')
 ax.legend()
 ax.grid(True)
 st.pyplot(fig)
-
-# Anomaly Detection section
-st.subheader("Anomaly Detection")
-
-# Select the 'Weekly_Sales' values for anomaly detection
-weekly_sales = data2['Weekly_Sales'].values.reshape(-1, 1)
-
-# Initialize the Isolation Forest model for anomaly detection
-isolation_forest = IsolationForest(contamination=0.05)  # You can adjust the contamination parameter as needed
-
-# Fit the model to the data
-isolation_forest.fit(weekly_sales)
-
-# Predict anomalies (outliers)
-anomalies = isolation_forest.predict(weekly_sales)
-
-# Create a boolean mask to identify anomalies
-is_anomaly = anomalies == -1
-
-# Filter the data to show only the anomalies
-anomaly_data = data2[is_anomaly]
-
-# Plot anomalies
-fig, ax = plt.subplots(figsize=(12, 6))
-ax.plot(data2.index, data2['Weekly_Sales'], label='Sales')
-# ax.scatter(anomaly_data.index, anomaly_data['Weekly_Sales'], c='red', marker='o', label='Anomalies')
-ax.set_xlabel('Date')
-ax.set_ylabel('Sales')
-ax.set_title('Anomaly Detection for Weekly Sales')
-ax.legend()
-ax.grid(True)
-st.pyplot(fig)
-
-# Display a table of detected anomalies
-st.subheader("Detected Anomalies")
-st.write(anomaly_data)
