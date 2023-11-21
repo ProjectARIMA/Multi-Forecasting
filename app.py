@@ -119,9 +119,26 @@ st.pyplot(fig)
 # Remove anomalies from the original dataset
 cleaned_data = data2[~data2.index.isin(anomalies.index)]
 
+# Identify anomalies in cleaned data based on the threshold
+cleaned_anomalies = cleaned_data[(cleaned_data['Weekly_Sales_Zscore'] > threshold) | (cleaned_data['Weekly_Sales_Zscore'] < -threshold)]
+
 # Display the cleaned data
 st.write("Cleaned Data (Anomalies Removed):")
-st.write(cleaned_data.head())
+#st.write(cleaned_data.head())
+# Create Matplotlib figure and plot cleand data
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.plot(cleaned_data.index, cleaned_data['Weekly_Sales'], label='Weekly Sales')
+ax.scatter(cleaned_anomalies.index, cleaned_anomalies['Weekly_Sales'])
+ax.set_xlabel('Date')
+ax.set_ylabel('Sales')
+ax.set_title('cleaned anomalies in Weekly Sales')
+ax.legend()
+ax.grid(True)
+ax.tick_params(axis='x', rotation=45)
+
+# Display Matplotlib figure using Streamlit
+st.write("Detected Anomalies:")
+st.pyplot(fig)
 
 # Plot historical and forecasted sales
 #st.subheader("Sales Forecast for the Last 5 Weeks and Next 2 Weeks (origranl data)")
