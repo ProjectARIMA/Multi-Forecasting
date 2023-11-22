@@ -118,9 +118,10 @@ st.pyplot(fig)
 #remove anomalies
 # Remove anomalies from the original dataset
 cleaned_data = data2[~data2.index.isin(anomalies.index)]
-
+cleaned_data['Weekly_Sales_Zscore'] = (cleaned_data['Weekly_Sales'] - cleaned_data['Weekly_Sales'].mean()) / cleaned_data['Weekly_Sales'].std()
 # Identify anomalies in cleaned data based on the threshold
 cleaned_anomalies = cleaned_data[(cleaned_data['Weekly_Sales_Zscore'] > threshold) | (cleaned_data['Weekly_Sales_Zscore'] < -threshold)]
+
 
 # Display the cleaned data
 st.write("Cleaned Data (Anomalies Removed):")
