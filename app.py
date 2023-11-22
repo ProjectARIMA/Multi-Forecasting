@@ -163,4 +163,3 @@ ax.set_title('Sales Forecast for the Last 5 Weeks and Next 2 Weeks(clean data wi
 ax.legend()
 ax.grid(True)
 st.pyplot(fig)
-st.write("New file")
