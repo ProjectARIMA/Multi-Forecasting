@@ -76,7 +76,7 @@ last_five_weeks_end = data['Date'].max()
 historical_data = data[(data['Date'] >= last_five_weeks_start) & (data['Date'] <= last_five_weeks_end)]
 
 # Streamlit app
-st.title("Time Series Forecasting App")
+st.title("Multivariate Anomaly Detection and Time Series Forecasting Web Application")
 
 # Display ADF test results
 st.write("ADF Statistic:", adf_statistic)
